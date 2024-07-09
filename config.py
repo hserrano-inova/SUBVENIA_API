@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     temperature:int
     algorithm: str
     access_token_expire_minutes: int
+    openai_api_key: str
     # uploadOf_path:str
     # pdfEval_path:str
     production: bool

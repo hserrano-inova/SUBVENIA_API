@@ -9,17 +9,7 @@ from typing import Optional, List
 import os
 
 
-class Localizacion(BaseModel):
-  descripcion:str=""
-  ciudad: str = ""
-  provincia:int = 1
-  direccion: str  = ""
-  cp: str  = ""
-  pcontacto:str=""
-  tlf:str=""
-  mail:str=""
-
-class Empresa(BaseModel):
+class Evaluacion(BaseModel):
   id: Optional[PydanticObjectId] = PydanticObjectId()
   actualizada:datetime = datetime.now()
   cif: str = ""
@@ -33,11 +23,10 @@ class Empresa(BaseModel):
   facturacion: int = 0
   minimis: int = 0
   tags: str = ""
-  localizacion: List[Localizacion] = [Localizacion()]
   observaciones: str = ""
   descripcion: str = ""
 
-class EmpresaList(BaseModel):
+class EvaluacionList(BaseModel):
     id: Optional[PydanticObjectId]
     cif: str = ""
     rsocial: str = ""

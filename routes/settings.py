@@ -29,3 +29,15 @@ async def update_criteria(criteria: SubvencionGeneral):
         {"$set": {'criteria': criteria.model_dump()}},upsert=True
   )
   return "OK"
+
+@router.get("/getsettings", tags=["Settings"], description="Get subvenciones by id")
+async def get_settings():
+  db = get_db()
+  resp = db.settings.find_one(
+        {'tipo_empresa': {'$exists': True}},
+        {'_id': 0}
+    )
+  if(resp is not None):
+    return resp
+  else:
+    raise HTTPException(status_code=404, detail="Settings not found")
