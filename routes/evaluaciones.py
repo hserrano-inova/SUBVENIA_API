@@ -14,7 +14,7 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 client = AsyncOpenAI(
-  api_key=settings.openai_api_key
+  api_key=settings.api_key
 )
 
 @router.get("/evaluaciones/{idprj}", response_model=List[EvaluacionList], tags=["Evaluaciones"])
