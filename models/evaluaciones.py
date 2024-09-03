@@ -18,7 +18,6 @@ class Evaluacion(BaseModel):
   tipo: str = ""
   sector: str = ""
   cnae_cod:str = ""
-  pyme:bool = True
   nempleados: int = 0
   facturacion: int = 0
   minimis: int = 0
