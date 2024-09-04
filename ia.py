@@ -1,6 +1,6 @@
 from openai import AsyncOpenAI
 from config import settings
-from db import get_db
+
 
 class IA:
 
@@ -13,20 +13,10 @@ class IA:
     response = await self.client.chat.completions.create(
       model=self.model,
       temperature=int(settings.temperature)/10,
-      messages=[{"role": "user", "content": prompt}],
+      messages=[
+        {"role": "system", "content": "Eres un consultor experto experto en subvenciones para poyectos tecnológicos y de medioambiente"},
+        {"role": "user", "content": prompt}
+      ],
     )
     return response.choices[0].message.content
-  
-  async def subSniff(self):
-    # db = get_db()
-    # empresa_dict = empresa.dict()
-    # empresa_dict["id"] = str(PydanticObjectId())
-    # result = db.empresas.insert_one(empresa_dict)
-  
-    # response = await self.client.chat.completions.create(
-    #   model=self.model,
-    #   temperature=int(settings.temperature)/10,
-    #   messages=[{"role": "user", "content": ""}],
-    # )
-    # return response.choices[0].message.content
-    return "OK"
+
