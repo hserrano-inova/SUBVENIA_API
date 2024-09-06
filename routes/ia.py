@@ -8,7 +8,8 @@ from models.ia import Completion
 from models.users import User
 from models.proyectos import Proyecto
 from models.subvenciones import SubvencionList
-from pydantic_mongo import  PydanticObjectId
+#from pydantic_mongo import  PydanticObjectId
+#from bson.objectid import ObjectId
 
 from ia import IA
 import asyncio
@@ -29,31 +30,51 @@ async def ia_generate(completion: Completion, current_user: User = Depends(get_c
     print(e)
     return {"msg": "Error al generar la respuesta"}
 
-@router.websocket("/peval")
-async def ia_subsniff( websocket: WebSocket):
+@router.websocket("/ws/peval/")
+async def ia_subsniff( websocket: WebSocket, prjid:str):
   await websocket.accept()
   db = get_db()
-  subvenciones = list(db.subvenciones.find({},{"_id":0}).limit(4))
-  for s in subvenciones:
-    try:
-      await websocket.send_text(f"subvencion: {s['nsubvencion']}")
-      await asyncio.sleep(5)
+  subvenciones = list(db.subvenciones.find({},{"_id":0}).limit(1))
+  pipeline = [
+      {
+        "$match": { "id": prjid }  # Asegúrate que el ID es de tipo ObjectId, si corresponde
+      },
+      {
+          "$lookup": {
+              "from": "empresas",          # Colección "empresas"
+              "localField": "id_empresa",  # Campo en "proyectos"
+              "foreignField": "id",       # Campo en "empresas"
+              "as": "empresa_info"         # Nombre del campo donde se guardará la información de "empresas"
+          }
+      },
+      {
+          "$project": {
+              "id": 1,
+              "beneficiarios": 1,
+              "objeticos": 1,
+              "invercion_inovacion": 1,
+              "conceptos_financiables": 1,
+              "consorcio": 1,
+              "empresa_info": 1            # Mostrar la información de la empresa unida
+          }
+      }
+  ]
 
-    except WebSocketDisconnect:
-      return "ws disconnect"
-    except Exception as e:
-      return e
+  # Ejecutar el pipeline
+  result = list(db.projects.aggregate(pipeline))
+  #chack result not empty
+  if len(result) > 0:
+    print(result[0])
+    for s in subvenciones:
+      try:
+        #iaresult = await assistant.autoGen("")
+        await websocket.send_text(f"subvencion: {s['nsubvencion']}")
+        await asyncio.sleep(5)
+
+      except WebSocketDisconnect:
+        return "ws disconnect"
+      except Exception as e:
+        return e
+  else:
+    await websocket.send_text("No hay subvenciones")
   await websocket.close()
-  
-  # try:
-  #   db = get_db()
-  #   subvenciones = list(db.subvenciones.find({},{"_id":0}))
-
-  #   await asyncio.sleep(5)
-  #   # sub=[SubvencionList(**subvencion) for subvencion in subvenciones]
-  #   # for s in sub:
-  #   #   aresult = await assistant.autoGen("")
-  #   #   return "OK"
-  # except Exception as e:
-  #   print(e)
-  #   return {"msg": "Error al generar la respuesta"}
