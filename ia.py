@@ -8,7 +8,6 @@ class IA:
     self.client = AsyncOpenAI(api_key=settings.api_key)
     self.model = settings.net_model
   
-
   async def autoGen(self, prompt):
     response = await self.client.chat.completions.create(
       model=self.model,

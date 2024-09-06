@@ -8,6 +8,7 @@ from models.ia import Completion
 from models.users import User
 from models.proyectos import Proyecto
 from models.subvenciones import SubvencionList
+import json
 #from pydantic_mongo import  PydanticObjectId
 #from bson.objectid import ObjectId
 
@@ -51,30 +52,67 @@ async def ia_subsniff( websocket: WebSocket, prjid:str):
           "$project": {
               "id": 1,
               "beneficiarios": 1,
-              "objeticos": 1,
-              "invercion_inovacion": 1,
+              "objetivo": 1,
+              "inversion_inovacion": 1,
               "conceptos_financiables": 1,
               "consorcio": 1,
               "empresa_info": 1            # Mostrar la información de la empresa unida
           }
       }
   ]
-
-  # Ejecutar el pipeline
   result = list(db.projects.aggregate(pipeline))
-  #chack result not empty
+
   if len(result) > 0:
-    print(result[0])
-    for s in subvenciones:
+    project = result[0]
+    empresa = project['empresa_info'][0]
+    #print(result[0])
+    for subvencion in subvenciones:
       try:
-        #iaresult = await assistant.autoGen("")
-        await websocket.send_text(f"subvencion: {s['nsubvencion']}")
-        await asyncio.sleep(5)
+        prompt=f"""
+          {subvencion['beneficiarios']}
+          {subvencion['objetivo']}
+          {subvencion['inversion_inovacion']}
+          {subvencion['conceptos_financiables']}
+          {subvencion['consorcio']}
+          {subvencion["ambito"]}
+          {subvencion["tipo_ayuda"]}
+          {subvencion["concurrencia"]}
+          {subvencion["minimis"]}
+          {subvencion["presupuesto_minimo"]}
+          {subvencion["presupuesto_maximo"]}
+          {subvencion["areas"]}
+
+          {project['beneficiarios']}
+          {project['objetivo']}
+          {project['inversion_inovacion']}
+          {project['conceptos_financiables']}
+          {project['consorcio']}
+
+          {empresa["tipo"]}
+          {empresa["sector"]}
+          {empresa["cnae_cod"]}
+          {empresa["nempleados"]}          
+          {empresa["facturacion"]}          
+          {empresa["minimis"]}         
+          {empresa["tags"]}
+          {empresa["observaciones"]}
+          {empresa["descripcion"]}    
+        """
+        
+        #iaresult = await assistant.autoGen(prompt)
+
+        rdict ={
+          "prompt":subvencion['nsubvencion'],
+          "nsubvencion": subvencion['nsubvencion'],
+        }
+
+        await websocket.send_text(json.dumps(rdict))
+        #await asyncio.sleep(5)
 
       except WebSocketDisconnect:
         return "ws disconnect"
       except Exception as e:
-        return e
+        await websocket.close()
   else:
-    await websocket.send_text("No hay subvenciones")
+    await websocket.send_text("No se han encontrado datos")
   await websocket.close()
