@@ -15,7 +15,6 @@ import json
 from ia import IA
 import asyncio
 
-
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -35,7 +34,7 @@ async def ia_generate(completion: Completion, current_user: User = Depends(get_c
 async def ia_subsniff( websocket: WebSocket, prjid:str):
   await websocket.accept()
   db = get_db()
-  subvenciones = list(db.subvenciones.find({},{"_id":0}).limit(1))
+  subvenciones = list(db.subvenciones.find({"estado":"Abierta"},{"_id":0}).limit(3))
   pipeline = [
       {
         "$match": { "id": prjid }  # Asegúrate que el ID es de tipo ObjectId, si corresponde
@@ -68,45 +67,73 @@ async def ia_subsniff( websocket: WebSocket, prjid:str):
     #print(result[0])
     for subvencion in subvenciones:
       try:
+        # prompt=f"""
+        #   {subvencion['beneficiarios']}
+        #   {subvencion['objetivo']}
+        #   {subvencion['inversion_inovacion']}
+        #   {subvencion['conceptos_financiables']}
+        #   {subvencion['consorcio']}
+        #   {subvencion["ambito"]}
+        #   {subvencion["tipo_ayuda"]}
+        #   {subvencion["concurrencia"]}
+        #   {subvencion["minimis"]}
+        #   {subvencion["presupuesto_minimo"]}
+        #   {subvencion["presupuesto_maximo"]}
+        #   {subvencion["areas"]}
+
+        #   {project['beneficiarios']}
+        #   {project['objetivo']}
+        #   {project['inversion_inovacion']}
+        #   {project['conceptos_financiables']}
+        #   {project['consorcio']}
+
+        #   {empresa["tipo"]}
+        #   {empresa["sector"]}
+        #   {empresa["cnae_cod"]}
+        #   {empresa["nempleados"]}          
+        #   {empresa["facturacion"]}          
+        #   {empresa["minimis"]}         
+        #   {empresa["tags"]}
+        #   {empresa["observaciones"]}
+        #   {empresa["descripcion"]}    
+        # """
         prompt=f"""
+          Eres un consultor experto tecnología, energía y medioambiente.
+          Tu labor es evaluar si una subvencion encaja con el perfil de la empresa y proyecto.
+
+          Primero debes comprobar si los beneficiarios que pueden acceder a la subvencion encajan con el perfil de la empresa:
+          <beneficiarios>
+          Estos son los beneficiarios de la subvencion:
           {subvencion['beneficiarios']}
+          Este es tipo de empresa es {empresa["tipo"]}
+          </beneficiarios> 
+          Si no se cumple el perfil de la empresa vete directamente al apartado <response>
+
+          Segundo, debes comprobar si el objetivo de la subvencion encaja con el perfil de la empresa:
+          <objetivo>
+          Este es el objetivo de la subvencion:
           {subvencion['objetivo']}
-          {subvencion['inversion_inovacion']}
-          {subvencion['conceptos_financiables']}
-          {subvencion['consorcio']}
-          {subvencion["ambito"]}
-          {subvencion["tipo_ayuda"]}
-          {subvencion["concurrencia"]}
-          {subvencion["minimis"]}
-          {subvencion["presupuesto_minimo"]}
-          {subvencion["presupuesto_maximo"]}
-          {subvencion["areas"]}
 
-          {project['beneficiarios']}
-          {project['objetivo']}
-          {project['inversion_inovacion']}
-          {project['conceptos_financiables']}
-          {project['consorcio']}
-
-          {empresa["tipo"]}
-          {empresa["sector"]}
-          {empresa["cnae_cod"]}
-          {empresa["nempleados"]}          
-          {empresa["facturacion"]}          
-          {empresa["minimis"]}         
+          La empresa se describe de la siguiente manera:
+          {empresa["descripcion"]}
           {empresa["tags"]}
-          {empresa["observaciones"]}
-          {empresa["descripcion"]}    
+          </objetivo>
+          Si no se cumple el perfil de la empresa vete directamente al apartado <response>
+
+          <reponse>
+          Finalemnte devuelve un JSON con el nombre de cada apartado cada apartado en el que se responda en el campo "respuesta" si se cumple ture o false y un campo llamado "argumento" que argumente cada una de las respueestas
+          </reponse>
         """
         
-        #iaresult = await assistant.autoGen(prompt)
+        iaresult = await assistant.autoGen(prompt,True)
 
         rdict ={
-          "prompt":subvencion['nsubvencion'],
-          "nsubvencion": subvencion['nsubvencion'],
+          "nsub":subvencion['nsubvencion'],
+          "response": json.loads(iaresult)
         }
 
         await websocket.send_text(json.dumps(rdict))
+        #await websocket.send_text(iaresult)
         #await asyncio.sleep(5)
 
       except WebSocketDisconnect:
